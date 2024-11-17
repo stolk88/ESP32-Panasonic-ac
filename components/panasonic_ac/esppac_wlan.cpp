@@ -537,6 +537,130 @@ void PanasonicACWLAN::handle_packet() {
   } else {
     ESP_LOGW(TAG, "Received unknown packet: %s", format_hex_pretty(this->rx_buffer_).c_str());
   }
+}void PanasonicACWLAN::handle_packet() {
+  ESP_LOGW(TAG, "Handling packet: %s", format_hex_pretty(this->rx_buffer_).c_str());
+
+  if (this->rx_buffer_[2] == 0x01 && this->rx_buffer_[3] == 0x01)  // Ping
+  {
+    ESP_LOGD(TAG, "Answering ping");
+    send_command(CMD_PING, sizeof(CMD_PING), CommandType::Response);
+  } else if (this->rx_buffer_[2] == 0x10 && this->rx_buffer_[3] == 0x89)  // Received query response
+  {
+    ESP_LOGD(TAG, "Received query response");
+
+    if (this->rx_buffer_.size() != 125) {
+      ESP_LOGW(TAG, "Received invalid query response");
+      return;
+    }
+
+    if (this->rx_buffer_[14] == 0x31)          // Check if power state is off
+      this->mode = climate::CLIMATE_MODE_OFF;  // Climate is off
+    else {
+      this->mode = determine_mode(this->rx_buffer_[18]);  // Check mode if power state is not off
+    }
+
+    update_target_temperature((int8_t) this->rx_buffer_[22]);
+    update_current_temperature((int8_t) this->rx_buffer_[62]);
+    update_outside_temperature((int8_t) this->rx_buffer_[66]);  // Set current (outside) temperature
+
+    std::string horizontalSwing = determine_swing_horizontal(this->rx_buffer_[34]);
+    std::string verticalSwing = determine_swing_vertical(this->rx_buffer_[38]);
+
+    update_swing_horizontal(horizontalSwing);
+    update_swing_vertical(verticalSwing);
+
+    bool nanoex = determine_nanoex(this->rx_buffer_[50]);
+
+    update_nanoex(nanoex);
+
+    this->custom_fan_mode = determine_fan_speed(this->rx_buffer_[26]);
+    this->custom_preset = determine_preset(this->rx_buffer_[42]);
+
+    this->swing_mode = determine_swing(this->rx_buffer_[30]);
+
+    this->publish_state();
+  } else if (this->rx_buffer_[2] == 0x10 && this->rx_buffer_[3] == 0x88)  // Command ack
+  {
+    ESP_LOGV(TAG, "Received command ack");
+  } else if (this->rx_buffer_[2] == 0x10 && this->rx_buffer_[3] == 0x0A)  // Report
+  {
+    ESP_LOGV(TAG, "Received report");
+    send_command(CMD_REPORT_ACK, sizeof(CMD_REPORT_ACK), CommandType::Response);
+
+    if (this->rx_buffer_.size() < 13) {
+      ESP_LOGE(TAG, "Report is too short to handle");
+      return;
+    }
+
+    for (int i = 0; i < this->rx_buffer_[10]; i++) {
+      int currentIndex = (4 * 3) + (i * 4);
+
+      switch (this->rx_buffer_[currentIndex]) {
+        case 0x80:  // Power mode
+          switch (this->rx_buffer_[currentIndex + 2]) {
+            case 0x30:  // Power mode on
+              ESP_LOGV(TAG, "Received power mode on");
+              break;
+            case 0x31:  // Power mode off
+              ESP_LOGV(TAG, "Received power mode off");
+              this->mode = climate::CLIMATE_MODE_OFF;
+              break;
+            default:
+              ESP_LOGW(TAG, "Received unknown power mode");
+              break;
+          }
+          break;
+        case 0xB0:  // Mode
+          this->mode = determine_mode(this->rx_buffer_[currentIndex + 2]);
+          break;
+        case 0x31:  // Target temperature
+          ESP_LOGV(TAG, "Received target temperature");
+          update_target_temperature((int8_t) this->rx_buffer_[currentIndex + 2]);
+          break;
+        case 0xA0:  // Fan speed
+          ESP_LOGV(TAG, "Received fan speed");
+          this->custom_fan_mode = determine_fan_speed(this->rx_buffer_[currentIndex + 2]);
+          break;
+        case 0xB2: // Preset
+          ESP_LOGV(TAG, "Received preset");
+          this->custom_preset = determine_preset(this->rx_buffer_[currentIndex + 2]);
+          break;
+        case 0xA1:
+          ESP_LOGV(TAG, "Received swing mode");
+          this->swing_mode = determine_swing(this->rx_buffer_[currentIndex + 2]);
+          break;
+        case 0xA5:  // Horizontal swing position
+          ESP_LOGV(TAG, "Received horizontal swing position");
+          update_swing_horizontal(determine_swing_horizontal(this->rx_buffer_[currentIndex + 2]));
+          break;
+        case 0xA4:  // Vertical swing position
+          ESP_LOGV(TAG, "Received vertical swing position");
+          update_swing_vertical(determine_swing_vertical(this->rx_buffer_[currentIndex + 2]));
+          break;
+        case 0x33:  // nanoex mode
+          ESP_LOGV(TAG, "Received nanoex state");
+          update_nanoex(determine_nanoex(this->rx_buffer_[currentIndex + 2]));
+          break;
+        case 0x20:
+          ESP_LOGV(TAG, "Received unknown nanoex field");
+          break;
+        default:
+          ESP_LOGW(TAG, "Report has unknown field: %s", format_hex_pretty(this->rx_buffer_).c_str());
+          break;
+      }
+    }
+
+    climate::ClimateAction action = determine_action();  // Determine the current action of the AC
+    this->action = action;
+
+    this->publish_state();
+  } else if (this->rx_buffer_[2] == 0x01 && this->rx_buffer_[3] == 0x80)  // Answer for handshake 16
+  {
+    ESP_LOGI(TAG, "Panasonic AC component v%s initialized", VERSION);
+    this->state_ = ACState::Ready;
+  } else {
+    // ESP_LOGW(TAG, "Received unknown packet: %s", format_hex_pretty(this->rx_buffer_).c_str());
+  }
 }
 
 void PanasonicACWLAN::handle_handshake_packet() {
