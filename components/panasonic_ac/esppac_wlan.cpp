@@ -218,6 +218,9 @@ void PanasonicACWLAN::handle_init_packets() {
 }
 
 bool PanasonicACWLAN::verify_packet() {
+  // Voeg hier logging toe om de inhoud van het pakket te inspecteren
+  ESP_LOGW(TAG, "Verifying packet: %s", format_hex_pretty(this->rx_buffer_).c_str());
+
   if (this->rx_buffer_.size() < 5)  // Drop packets that are too short
   {
     ESP_LOGW(TAG, "Dropping invalid packet (length)");
