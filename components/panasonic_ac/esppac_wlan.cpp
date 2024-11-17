@@ -535,8 +535,9 @@ void PanasonicACWLAN::handle_packet() {
     ESP_LOGI(TAG, "Panasonic AC component v%s initialized", VERSION);
     this->state_ = ACState::Ready;
   } else {
-    ESP_LOGW(TAG, "Received unknown packet: %s", format_hex_pretty(this->rx_buffer_).c_str());
+    // ESP_LOGW(TAG, "Received unknown packet: %s", format_hex_pretty(this->rx_buffer_).c_str());
   }
+
 }void PanasonicACWLAN::handle_packet() {
   ESP_LOGW(TAG, "Handling packet: %s", format_hex_pretty(this->rx_buffer_).c_str());
 
@@ -659,7 +660,7 @@ void PanasonicACWLAN::handle_packet() {
     ESP_LOGI(TAG, "Panasonic AC component v%s initialized", VERSION);
     this->state_ = ACState::Ready;
   } else {
-    ESP_LOGW(TAG, "Received unknown packet: %s", format_hex_pretty(this->rx_buffer_).c_str());
+    // ESP_LOGW(TAG, "Received unknown packet: %s", format_hex_pretty(this->rx_buffer_).c_str());
   }
 }
 
