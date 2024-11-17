@@ -51,7 +51,6 @@ HORIZONTAL_SWING_OPTIONS = [
     "right",
 ]
 
-
 VERTICAL_SWING_OPTIONS = ["swing", "auto", "up", "up_center", "center", "down_center", "down"]
 
 SWITCH_SCHEMA = switch.SWITCH_SCHEMA.extend(cv.COMPONENT_SCHEMA).extend(
@@ -100,7 +99,6 @@ CONFIG_SCHEMA = cv.typed_schema(
     }
 )
 
-
 async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])
     await climate.register_climate(var, config)
@@ -126,10 +124,10 @@ async def to_code(config):
     for s in [CONF_ECO_SWITCH, CONF_NANOEX_SWITCH, CONF_MILD_DRY_SWITCH, CONF_ECONAVI_SWITCH]:
         if s in config:
             conf = config[s]
-            a_switch = cg.new_Pvariable(conf[CONF_ID])
-            await cg.register_component(a_switch, conf)
-            await switch.register_switch(a_switch, conf)
-            cg.add(getattr(var, f"set_{s}")(a_switch))
+            switch_var = cg.new_Pvariable(conf[CONF_ID])
+            await cg.register_component(switch_var, conf)
+            await switch.register_switch(switch_var, conf)
+            cg.add(getattr(var, f"set_{s}")(switch_var))
 
     if CONF_CURRENT_TEMPERATURE_SENSOR in config:
         sens = await cg.get_variable(config[CONF_CURRENT_TEMPERATURE_SENSOR])
