@@ -6,14 +6,14 @@ namespace esphome {
 namespace panasonic_ac {
 namespace WLAN {
 
-static const uint8_t HEADER = 0x5A;  // The header of the protocol, every packet starts with this
+constexpr uint8_t HEADER = 0x5A;  // The header of the protocol, every packet starts with this
 
-static const int INIT_TIMEOUT = 10000;       // Time to wait before initializing after boot
-static const int INIT_END_TIMEOUT = 20000;   // Time to wait for last handshake packet
-static const int FIRST_POLL_TIMEOUT = 650;   // Time to wait before requesting the first poll
-static const int POLL_INTERVAL = 30000;      // The interval at which to poll the AC
-static const int RESPONSE_TIMEOUT = 600;     // The timeout after which we expect a response to our last command
-static const int INIT_FAIL_TIMEOUT = 60000;  // The timeout after which the initialization is considered failed
+constexpr int INIT_TIMEOUT = 10000;       // Time to wait before initializing after boot
+constexpr int INIT_END_TIMEOUT = 20000;   // Time to wait for last handshake packet
+constexpr int FIRST_POLL_TIMEOUT = 650;   // Time to wait before requesting the first poll
+constexpr int POLL_INTERVAL = 30000;      // The interval at which to poll the AC
+constexpr int RESPONSE_TIMEOUT = 600;     // The timeout after which we expect a response to our last command
+constexpr int INIT_FAIL_TIMEOUT = 60000;  // The timeout after which the initialization is considered failed
 
 enum class ACState {
   Initializing,     // Before first handshake packet is sent
@@ -44,11 +44,11 @@ class PanasonicACWLAN : public PanasonicAC {
   uint8_t transmit_packet_count_ = 0;  // Counter used in packet (2nd byte) when we are sending packets
   uint8_t receive_packet_count_ = 0;   // Counter used in packet (2nd byte) when AC is sending us packets
 
-  const uint8_t *last_command_;  // Stores a pointer to the last command we executed
-  size_t last_command_length_;   // Stores the length of the last command we executed
+  const uint8_t *last_command_ = nullptr;  // Stores a pointer to the last command we executed
+  size_t last_command_length_ = 0;         // Stores the length of the last command we executed
 
-  uint8_t set_queue_[16][2];     // Queue to store the key/value for the set commands
-  uint8_t set_queue_index_ = 0;  // Stores the index of the next key/value set
+  std::array<std::array<uint8_t, 2>, 16> set_queue_ = {};  // Queue to store the key/value for the set commands
+  uint8_t set_queue_index_ = 0;                            // Stores the index of the next key/value set
 
   void handle_init_packets();
   void handle_handshake_packet();
@@ -58,7 +58,7 @@ class PanasonicACWLAN : public PanasonicAC {
   void handle_packet();
 
   void send_set_command();
-  void send_command(const uint8_t *command, size_t commandLength, CommandType type = CommandType::Normal);
+  void send_command(const uint8_t *command, size_t command_length, CommandType type = CommandType::Normal);
   void send_packet(std::vector<uint8_t> packet, CommandType type = CommandType::Normal);
 
   climate::ClimateMode determine_mode(uint8_t mode);
