@@ -552,10 +552,6 @@ void PanasonicACWLAN::handle_handshake_packet() {
   {
     ESP_LOGD(TAG, "Answering handshake [4/16]");
     send_command(CMD_HANDSHAKE_5, sizeof(CMD_HANDSHAKE_5));
-  } else if (this->rx_buffer_[2] == 0x00 && this->rx_buffer_[3] == 0x91)  // Answer for handshake 5
-  {
-    ESP_LOGD(TAG, "Answering handshake [5/16]");
-    send_command(CMD_HANDSHAKE_6, sizeof(CMD_HANDSHAKE_6));
   } else if (this->rx_buffer_[2] == 0x00 && this->rx_buffer_[3] == 0x92)  // Answer for handshake 6
   {
     ESP_LOGD(TAG, "Answering handshake [6/16]");
@@ -604,7 +600,7 @@ void PanasonicACWLAN::handle_handshake_packet() {
     this->state_ = ACState::FirstPoll;  // Start delayed first poll
     send_command(CMD_HANDSHAKE_15, sizeof(CMD_HANDSHAKE_15), CommandType::Response);
   } else {
-    ESP_LOGW(TAG, "Received unknown packet during initialization");
+    ESP_LOGW(TAG, "Received unknown packet during initialization: %s", format_hex_pretty(this->rx_buffer_).c_str());
   }
 }
 
