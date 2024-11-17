@@ -506,17 +506,14 @@ void PanasonicACWLAN::handle_packet() {
           break;
         case 0xA5:  // Horizontal swing position
           ESP_LOGV(TAG, "Received horizontal swing position");
-
           update_swing_horizontal(determine_swing_horizontal(this->rx_buffer_[currentIndex + 2]));
           break;
         case 0xA4:  // Vertical swing position
           ESP_LOGV(TAG, "Received vertical swing position");
-
           update_swing_vertical(determine_swing_vertical(this->rx_buffer_[currentIndex + 2]));
           break;
         case 0x33:  // nanoex mode
           ESP_LOGV(TAG, "Received nanoex state");
-
           update_nanoex(determine_nanoex(this->rx_buffer_[currentIndex + 2]));
           break;
         case 0x20:
@@ -524,7 +521,7 @@ void PanasonicACWLAN::handle_packet() {
           // Not sure what this one, ignore it for now
           break;
         default:
-          ESP_LOGW(TAG, "Report has unknown field");
+          ESP_LOGW(TAG, "Report has unknown field: %s", format_hex_pretty(this->rx_buffer_).c_str());
           break;
       }
     }
