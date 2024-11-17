@@ -223,14 +223,14 @@ bool PanasonicACWLAN::verify_packet() {
 
   if (this->rx_buffer_.size() < 5)  // Drop packets that are too short
   {
-    ESP_LOGW(TAG, "Dropping invalid packet (length)");
+    ESP_LOGW(TAG, "Dropping invalid packet (length): %s", format_hex_pretty(this->rx_buffer_).c_str());
     this->rx_buffer_.clear();  // Reset buffer
     return false;
   }
 
   if (this->rx_buffer_[0] == 0x66)  // Sync packets are the only packet not starting with 0x5A
   {
-    ESP_LOGI(TAG, "Received sync packet, triggering initialization");
+    ESP_LOGI(TAG, "Received sync packet, triggering initialization: %s", format_hex_pretty(this->rx_buffer_).c_str());
     this->init_time_ -= INIT_TIMEOUT;  // Set init time back to trigger a initialization now
     this->rx_buffer_.clear();          // Reset buffer
     return false;
@@ -238,7 +238,7 @@ bool PanasonicACWLAN::verify_packet() {
 
   if (this->rx_buffer_[0] != HEADER)  // Check if header matches
   {
-    ESP_LOGW(TAG, "Dropping invalid packet (header)");
+    ESP_LOGW(TAG, "Dropping invalid packet (header): %s", format_hex_pretty(this->rx_buffer_).c_str());
     this->rx_buffer_.clear();  // Reset buffer
     return false;
   }
@@ -249,7 +249,7 @@ bool PanasonicACWLAN::verify_packet() {
     if (this->rx_buffer_[1] != this->transmit_packet_count_ - 1 &&
         this->rx_buffer_[1] != 0xFE)  // Check transmit packet counter
     {
-      ESP_LOGW(TAG, "Correcting shifted tx counter");
+      ESP_LOGW(TAG, "Correcting shifted tx counter: %s", format_hex_pretty(this->rx_buffer_).c_str());
       this->receive_packet_count_ = this->rx_buffer_[1];
     }
   } else if (this->state_ == ACState::Ready)  // If we were not waiting for a response, check if the rx packet counter
@@ -257,7 +257,7 @@ bool PanasonicACWLAN::verify_packet() {
   {
     if (this->rx_buffer_[1] != this->receive_packet_count_)  // Check receive packet counter
     {
-      ESP_LOGW(TAG, "Correcting shifted rx counter");
+      ESP_LOGW(TAG, "Correcting shifted rx counter: %s", format_hex_pretty(this->rx_buffer_).c_str());
       this->receive_packet_count_ = this->rx_buffer_[1];
     }
   }
@@ -269,8 +269,7 @@ bool PanasonicACWLAN::verify_packet() {
 
   if (checksum != 0)  // Check if checksum is valid
   {
-    ESP_LOGD(TAG, "Dropping invalid packet (checksum)");
-
+    ESP_LOGD(TAG, "Dropping invalid packet (checksum): %s", format_hex_pretty(this->rx_buffer_).c_str());
     this->rx_buffer_.clear();  // Reset buffer
     return false;
   }
@@ -401,6 +400,8 @@ bool PanasonicACWLAN::determine_nanoex(uint8_t nanoex) {
  */
 
 void PanasonicACWLAN::handle_packet() {
+  ESP_LOGW(TAG, "Handling packet: %s", format_hex_pretty(this->rx_buffer_).c_str());
+
   if (this->rx_buffer_[2] == 0x01 && this->rx_buffer_[3] == 0x01)  // Ping
   {
     ESP_LOGD(TAG, "Answering ping");
@@ -537,7 +538,7 @@ void PanasonicACWLAN::handle_packet() {
     ESP_LOGI(TAG, "Panasonic AC component v%s initialized", VERSION);
     this->state_ = ACState::Ready;
   } else {
-    ESP_LOGW(TAG, "Received unknown packet");
+    ESP_LOGW(TAG, "Received unknown packet: %s", format_hex_pretty(this->rx_buffer_).c_str());
   }
 }
 
