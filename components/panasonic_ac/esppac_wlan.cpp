@@ -14,9 +14,10 @@ void PanasonicACWLAN::setup() {
 }
 
 void PanasonicACWLAN::loop() {
+  unsigned long start_time = millis();
+
   if (this->state_ != ACState::Ready) {
     handle_init_packets();  // Handle initialization packets separate from normal packets
-
     if (millis() - this->init_time_ > INIT_FAIL_TIMEOUT) {
       this->state_ = ACState::Failed;
       mark_failed();
@@ -24,35 +25,23 @@ void PanasonicACWLAN::loop() {
     }
   }
 
-  if (millis() - this->last_read_ > READ_TIMEOUT &&
-      !this->rx_buffer_.empty())  // Check if our read timed out and we received something
-  {
+  if (millis() - this->last_read_ > READ_TIMEOUT && !this->rx_buffer_.empty()) {
     log_packet(this->rx_buffer_);
-
     if (!verify_packet())  // Verify length, header, counter and checksum
       return;
-
-    this->waiting_for_response_ =
-        false;  // Set that we are not waiting for a response anymore since we received a valid one
+    this->waiting_for_response_ = false;
     this->last_packet_received_ = millis();  // Set the time at which we received our last packet
-
-    if (this->state_ == ACState::Ready || this->state_ == ACState::FirstPoll ||
-        this->state_ == ACState::HandshakeEnding)  // Parse regular packets
-    {
-      handle_packet();  // Handle regular packet
-    } else              // Parse handshake packets
-    {
-      handle_handshake_packet();  // Not initialized yet, handle handshake packet
-    }
-
+    handle_packet();
     this->rx_buffer_.clear();  // Reset buffer
   }
 
-  PanasonicAC::read_data();
-
   handle_resend();  // Handle packets that need to be resent
+  handle_poll();    // Handle sending poll packets
 
-  handle_poll();  // Handle sending poll packets
+  unsigned long end_time = millis();
+  if (end_time - start_time > 30) {
+    ESP_LOGW(TAG, "PanasonicACWLAN::loop took too long (%lu ms)", end_time - start_time);
+  }
 }
 
 /*
