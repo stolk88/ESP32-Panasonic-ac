@@ -316,7 +316,7 @@ void PanasonicACCNT::handle_packet() {
     if (this->state_ != ACState::Ready)
       this->state_ = ACState::Ready;  // Mark as ready after first poll
   } else {
-    ESP_LOGD(TAG, "Received unknown packet");
+    ESP_LOGW(TAG, "Received unknown packet: %s", format_hex_pretty(this->rx_buffer_).c_str());
   }
 }
 
